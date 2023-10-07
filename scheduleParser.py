@@ -8,6 +8,7 @@
 # ??? (but put the teacher separately if you can)
 import os
 import os.path as path
+import pprint
 # import json
 
 
@@ -21,43 +22,60 @@ INDIR = "input"
 
 
 
+# stolen from stackoverflow, will likely need later
+# def merge_dicts(tgt, enhancer):
+#     for key, val in enhancer.items():
+#         if key not in tgt:
+#             tgt[key] = val
+#             continue
+
+#         if isinstance(val, dict):
+#             merge_dicts(tgt[key], val)
+#         else:
+#             tgt[key] = val
+#     return tgt
+
+
+
+# TODO: consider passing in the result of fd.read()
 # TODO: consider introducing "stages", so that, for instance,
 # specialties are checked only if you're at the faculty level (here, once)
-# TODO: updating the dictpath takes 2 actions, make it take 1
-# or ditch the thing, or find a library to make working with dicts easier
 def parseTSV(fd) -> dict:
     output = {}
-    dictpath = [output]
+    faculty, year, specialty = "", "", ""
 
-    for t in fd.read().split("\t"):
-        t = t.strip()
-        if not t: continue
+    for line in fd.readlines():
+        for t in line.split("\t"):
+            t = t.strip()
+            if not t: continue
+            # print(t)
 
-        if t in FACULTIES:
-            dictpath[-1][t] = {}
-            dictpath.append(dictpath[-1][t])
+            if not faculty and t in FACULTIES:
+                faculty = t
+                output[faculty] = {}
 
-        elif t.beginswith("Спеціальність"):
-            spl = t.split('"')
-            dictpath[-1][spl[2][2]] = {}
-            dictpath.append(dictpath[-1][spl[2][2]])
-            spec = spl[1].strip()
-            dictpath[-1][spec] = {}
-            dictpath.append(dictpath[-1][spec])
+            elif t.beginswith("Спеціальність"):
+                spl = t.split('"')
+                dictpath[-1][spl[2][2]] = {}
+                dictpath.append(dictpath[-1][spl[2][2]])
+                spec = spl[1].strip()
+                dictpath[-1][spec] = {}
+                dictpath.append(dictpath[-1][spec])
 
-        elif t in DAYS:
-            dictpath[-1][t] = {}
-            dictpath.append(dictpath[-1][t])
+            elif t in DAYS:
+                dictpath[-1][t] = {}
+                dictpath.append(dictpath[-1][t])
 
-        # TODO: check for times, if found, look for the following in that order:
-        # subject+teacher (comma separated), group, weeks, location
-        # TODO: how to handle weeks? makes them keys or values?
-        # will probably have to convert to number range either way
+            # TODO: check for times, if found, look for the following in that order:
+            # subject+teacher (comma separated), group, weeks, location
+            # TODO: how to handle weeks? make them values
+            # will probably have to convert to number range either way
 
 
 
-os.curdir = os.path.abspath(__file__)
-for fn in [f for f in os.listdir(INDIR) if os.isfile(path.join(INDIR, f))]:
+workdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), INDIR)
+for fn in [os.path.join(workdir, f) for f in os.listdir(INDIR) if path.isfile(path.join(INDIR, f))]:
     if fn.endswith(".tsv"):
-        with open(fn) as fd:
+        with open(fn, encoding="utf-8") as fd:
             parseTSV(fd)
+            # pprint.pprint(fd.read().split("\t"))
