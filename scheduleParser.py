@@ -76,6 +76,7 @@ def parseTSV(fd) -> dict:
             # TODO: handle several lessons at one time
             # an array of dicts? a dict of dicts with either subject or group as keys?
             elif pastheader:
+                # TODO: store time as a time range? for /now and /next
                 if re.match(TIMEREGEXP, t):
                     dayroot[t] = {}
                     curtime = t
@@ -88,17 +89,16 @@ def parseTSV(fd) -> dict:
                     dayroot[curtime]["subject"] = spl[0]
                     dayroot[curtime]["teacher"] = spl[1]
                 # convert weeks to a list of numbers
-                # TODO: fix weeks, they only contain 0 (see file)
                 elif dayindex == 2:
                     weeks = []
                     nums = t.split(",")
                     for n in nums:
                         r = n.split("-")
-                        # print(r)
+                        print(r)
                         if len(r) == 1:
                             weeks.append(int(r[0]))
                         else:
-                            weeks.extend(list(range(int(r[0], int(r[1])+1))))
+                            weeks.extend(list(range(int(r[0]), int(r[1]) + 1)))
                     dayroot[curtime][DAYORDER[dayindex]] = weeks
 
                 else:
