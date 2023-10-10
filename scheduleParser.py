@@ -9,13 +9,14 @@
 import os, re, json, pprint
 
 
-# TODO: write down marker constants (faculties, specialties, week days etc)
 FACULTIES = {"Факультет інформатики"}
 # SPECIALTIES = {"Інженерія програмного забезпечення"}
 # TODO: П'ятниця is broken, has different apostrophes in different files
 # put all of them in?
-DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "Субота"}
+DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "’ятниця", "Субота"}
 TIMEREGEXP = "([01]?[0-9]|2[0-4]):([0-5]\d)-([01]?[0-9]|2[0-4]):([0-5]\d)"
+DAYORDER = ("subject,teacher", "group", "weeks", "location")
+
 INDIR = "input"
 OUTFILE = "schedule.json"
 
@@ -36,14 +37,13 @@ OUTFILE = "schedule.json"
 
 
 
-# TODO: consider passing in the contents of fd
 def parseTSV(fd) -> dict:
-    DAYORDER = ("subject,teacher", "group", "weeks", "location")
     dayindex = 0
     output = {}
     root = output
     dayroot = root
     curtime = ""
+    curlessons = []
     pastheader = False
 
     for line in fd.readlines():
@@ -76,45 +76,45 @@ def parseTSV(fd) -> dict:
             # TODO: handle several lessons at one time
             # an array of dicts? a dict of dicts with either subject or group as keys?
             elif pastheader:
-                # TODO: store time as a time range? for /now and /next
+                # switch time if encountered
                 if re.match(TIMEREGEXP, t):
-                    dayroot[t] = {}
-                    curtime = t
+                    curlessons = [{}]
+                    dayroot[t] = curlessons
                     dayindex = 0
                     continue
+                # reset the lesson here to not add empty dicts
+                if dayindex >= len(DAYORDER):
+                    curlessons.append({})
+                    dayindex = 0
                 # separate subject and teacher
                 elif dayindex == 0:
                     spl = t.split(",", 1)
                     # print(t)
-                    dayroot[curtime]["subject"] = spl[0]
-                    dayroot[curtime]["teacher"] = spl[1]
+                    curlessons[-1]["subject"] = spl[0].strip()
+                    curlessons[-1]["teacher"] = spl[1].strip()
                 # convert weeks to a list of numbers
                 elif dayindex == 2:
                     weeks = []
                     nums = t.split(",")
                     for n in nums:
                         r = n.split("-")
-                        print(r)
+                        # print(r)
                         if len(r) == 1:
                             weeks.append(int(r[0]))
                         else:
                             weeks.extend(list(range(int(r[0]), int(r[1]) + 1)))
-                    dayroot[curtime][DAYORDER[dayindex]] = weeks
-
+                    curlessons[-1][DAYORDER[dayindex]] = weeks
+                # handle everything else
                 else:
                     # print(dayindex, t)
-                    dayroot[curtime][DAYORDER[dayindex]] = t
+                    curlessons[-1][DAYORDER[dayindex]] = t
                 
                 dayindex += 1
-                if dayindex >= len(DAYORDER):
-                    dayindex = 0
                     
     # pprint.pprint(output)
     return output
 
 
-# TODO: a CLI asing for the input dir, output file and whether
-# you want to append to the output file
 workdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), INDIR)
 for fn in [os.path.join(workdir, f) for f in os.listdir(INDIR) if os.path.isfile(os.path.join(INDIR, f))]:
     if fn.endswith(".tsv"):
