@@ -1,8 +1,12 @@
 import os, re, json, pprint
 
 
-FACULTIES = {"Факультет інформатики"}
-# SPECIALTIES = {"Інженерія програмного забезпечення"}
+FACULTIES = {"Факультет інформатики", "Факультет економічних наук"}
+# these are hardcoded, but idk how to figure them out from the file
+DOCSPECS = {"Факультет економічних наук": {"ек": "Економіка",
+    "мар": "Маркетинг",
+    "мен": "Менеджмент",
+    "фін": "Фінанси, банківська справа та страхування"}}
 # TODO: П'ятниця is broken, has different apostrophes in different files
 # put all of them in?
 DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "’ятниця", "Субота"}
@@ -65,8 +69,6 @@ def parseTSV(fd) -> dict:
                 pastheader = True
                 # print(t)
 
-            # TODO: handle several lessons at one time
-            # an array of dicts? a dict of dicts with either subject or group as keys?
             elif pastheader:
                 # switch time if encountered
                 if re.match(TIMEREGEXP, t):
@@ -113,9 +115,10 @@ def parseTXT(fd) -> dict:
     dayindex = 0
     output = {}
     root = output
-    dayroot = root
+    curday = ""
     curtime = ""
-    curlessons = []
+    curspecs = []
+    faculty = ""
     pastheader = False
 
     for line in fd.readlines():
@@ -127,16 +130,14 @@ def parseTXT(fd) -> dict:
             if t in FACULTIES:
                 output[t] = {}
                 root = root[t]
+                faculty = ""
 
             elif t.startswith("Спеціальність"):
-                spl = t.split('"')
-                # year
-                root[spl[2][2]] = {}
-                root = root[spl[2][2]]
+                root[t[-6]] = {}
+                root = root[t[-6]]
                 # specialty
-                spec = spl[1].strip()
-                root[spec] = {}
-                root = root[spec]
+                for spec in DOCSPECS[faculty].values():
+                    root[spec] = {}
 
         if t in DAYS:
             root[t] = {}
@@ -144,25 +145,28 @@ def parseTXT(fd) -> dict:
             pastheader = True
             # print(t)
 
-        # TODO: handle several lessons at one time
-        # an array of dicts? a dict of dicts with either subject or group as keys?
         elif pastheader:
             # switch time if encountered
             if re.match(TIMEREGEXP, t):
-                curlessons = [{}]
-                dayroot[t] = curlessons
+                curspecs = []
                 dayindex = 0
                 continue
             # reset the lesson here to not add empty dicts
             if dayindex >= len(DAYORDER):
-                curlessons.append({})
+                curspecs = []
                 dayindex = 0
             # separate subject and teacher
             elif dayindex == 0:
-                spl = t.split(",", 1)
+                before = t.find("(")
+                after = t.find(")")
                 # print(t)
-                curlessons[-1]["subject"] = spl[0].strip()
-                curlessons[-1]["teacher"] = spl[1].strip()
+                for s in DOCSPECS[faculty]:
+                    if s in t[before:after]:
+                        curspecs.append(DOCSPECS[faculty][s])
+                        # TODO: is it possible that something is already in this dict?
+                        # don't clear it then
+                        root[DOCSPECS[faculty][s]] = {}
+
             # convert weeks to a list of numbers
             elif dayindex == 2:
                 weeks = []
