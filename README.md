@@ -20,3 +20,4 @@ A parser for the NaUKMA schedules
 - don't add empty dicts
 - fix duplicate code
 - map extensions to parsers instead of an elif tower
+- output a database (sql or smth) instead of a json, to make it easy to search by any value, not just those that happened to be keys

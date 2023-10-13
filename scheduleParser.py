@@ -7,10 +7,9 @@ DOCSPECS = {"Факультет економічних наук": {"ек": "Ек
     "мар": "Маркетинг",
     "мен": "Менеджмент",
     "фін": "Фінанси, банківська справа та страхування"}}
-# TODO: П'ятниця is broken, has different apostrophes in different files
-# put all of them in?
+# П'ятниця is kinda broken, has different apostrophes in different files
 DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "’ятниця", "Субота"}
-TIMEREGEXP = "([01]?[0-9]|2[0-4]):([0-5]\d)-([01]?[0-9]|2[0-4]):([0-5]\d)"
+TIMEREGEXP = "([01]?[0-9]|2[0-4])[:.]([0-5]\d)-([01]?[0-9]|2[0-4])[:.]([0-5]\d)"
 DAYORDER = ("subject,teacher", "group", "weeks", "location")
 
 INDIR = "input"
@@ -115,13 +114,12 @@ def parseTXT(fd) -> dict:
     dayindex = 0
     output = {}
     root = output
-    curday = ""
-    curtime = ""
-    curspecs = []
-    faculty = ""
     pastheader = False
+    faculty = ""
+    curspecdicts = []
+    foundTeacher = True
 
-    for line in fd.readlines():
+    for t in fd.readlines():
         t = t.strip()
         if not t: continue
         # print(t)
@@ -130,7 +128,7 @@ def parseTXT(fd) -> dict:
             if t in FACULTIES:
                 output[t] = {}
                 root = root[t]
-                faculty = ""
+                faculty = t
 
             elif t.startswith("Спеціальність"):
                 root[t[-6]] = {}
@@ -140,33 +138,44 @@ def parseTXT(fd) -> dict:
                     root[spec] = {}
 
         if t in DAYS:
-            root[t] = {}
-            dayroot = root[t]
+            for spdict in root.values():
+                spdict[t] = {}
             pastheader = True
             # print(t)
 
         elif pastheader:
             # switch time if encountered
             if re.match(TIMEREGEXP, t):
-                curspecs = []
+                curspecdicts = []
                 dayindex = 0
                 continue
             # reset the lesson here to not add empty dicts
             if dayindex >= len(DAYORDER):
-                curspecs = []
+                curspecdicts = []
                 dayindex = 0
-            # separate subject and teacher
-            elif dayindex == 0:
+            # separate subject, specialty and teacher
+            if dayindex == 0:
                 before = t.find("(")
                 after = t.find(")")
+                subject = t[:before].strip()
+                teacher = t[after+1:].strip()
+                if not teacher:
+                    print("lost teacher")
+                    foundTeacher = False
                 # print(t)
-                for s in DOCSPECS[faculty]:
-                    if s in t[before:after]:
-                        curspecs.append(DOCSPECS[faculty][s])
-                        # TODO: is it possible that something is already in this dict?
-                        # don't clear it then
-                        root[DOCSPECS[faculty][s]] = {}
-
+                for spcode in DOCSPECS[faculty]:
+                    if spcode in t[before:after]:
+                        spdict = root[DOCSPECS[faculty][spcode]]
+                        curspecdicts.append(spdict)
+                        spdict["subject"] = subject
+                        spdict["teacher"] = teacher
+            # the teacher may sometimes be on the next line, account for that
+            elif not foundTeacher:
+                foundTeacher = True
+                print("teacher handling")
+                for spdict in curspecdicts:
+                    spdict["teacher"] = t
+                continue
             # convert weeks to a list of numbers
             elif dayindex == 2:
                 weeks = []
@@ -178,12 +187,16 @@ def parseTXT(fd) -> dict:
                         weeks.append(int(r[0]))
                     else:
                         weeks.extend(list(range(int(r[0]), int(r[1]) + 1)))
-                curlessons[-1][DAYORDER[dayindex]] = weeks
+                for spdict in curspecdicts:
+                    spdict[DAYORDER[dayindex]] = weeks
             # handle everything else
             else:
                 # print(dayindex, t)
-                curlessons[-1][DAYORDER[dayindex]] = t
+                for spdict in curspecdicts:
+                    spdict[DAYORDER[dayindex]] = t
             
+            print(dayindex, t)
+            print(foundTeacher)
             dayindex += 1
                     
     # pprint.pprint(output)
@@ -193,6 +206,7 @@ def parseTXT(fd) -> dict:
 
 workdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), INDIR)
 output = {}
+print("\n\n\n")
 
 for fn in [os.path.join(workdir, f) for f in os.listdir(INDIR) if os.path.isfile(os.path.join(INDIR, f))]:
     if fn.endswith(".tsv"):
