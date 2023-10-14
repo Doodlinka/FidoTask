@@ -1,4 +1,4 @@
-import os, re, json
+import os, re, json, itertools
 
 
 FACULTIES = {"Факультет інформатики", "Факультет економічних наук"}
@@ -146,8 +146,8 @@ def parseTXT(tokens, minsubjectlen = 20) -> dict:
     curlesson = []
     curtime = ""  
 
-    for t in tokens:
-        print(t)
+    while tokens:
+        # print(t)
         if t in DAYS:
             curday = t
             for spdict in root.values():
@@ -172,9 +172,11 @@ def parseTXT(tokens, minsubjectlen = 20) -> dict:
         # - peek and check for time and day here
         # - remember the current time and day separately, check for time, day and the subject on the next iteration
         # - check for subject on the next iteration, check for time and day twice (to change them after the lesson is recorded)
-        if len(t) < minsubjectlen and not re.match(TIMEREGEXP, t):
+        if len(t) < minsubjectlen and not re.match(TIMEREGEXP, t) and t not in DAYS:
             curlesson[0] += " " + curlesson.pop(1)
             curlesson.append(t)
+            t = next(tokens)
+        # tokens = itertools.chain([t], tokens) \
 
         print(curlesson)
         # separate subject, teacher, specialty
