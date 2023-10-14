@@ -11,9 +11,8 @@ DOCSPECS = {"Факультет економічних наук": {
 # П'ятниця is kinda broken, has different apostrophes in different files
 DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "’ятниця", "Субота", "Неділя"}
 TIMEREGEXP = "([01]?[0-9]|2[0-4])[:.]([0-5]\d)-([01]?[0-9]|2[0-4])[:.]([0-5]\d)"
-WEEKREGEXP = "[[1-9]?[0-9]-[1-9]?[0-9]]|[[1-9]?[0-9][,[[1-9]?[0-9]]*]"
 LESSONORDER = ("subject,teacher", "group", "weeks", "location")
-
+WPREFIX = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 INDIR = "input"
 OUTFILE = "schedule.json"
 
@@ -35,10 +34,14 @@ def merge_dicts(tgt, enhancer):
 
 # this is vulnerable because it reads the entire
 # (potentially huge) file into memory
-def tokenize(fd, sep = "\n"):
+def splitAndStripGen(fd, sep = "\n"):
     for t in re.split(sep, fd.read()):
         t = t.strip()
         if t: yield t
+
+
+
+
 
 
 
@@ -303,7 +306,7 @@ for fn in [os.path.join(indir, f) for f in os.listdir(INDIR) if os.path.isfile(o
             merge_dicts(output, parseTSV(infd))
     if fn.endswith(".txt"):
         with open(fn, encoding="utf-8") as infd:
-            merge_dicts(output, parseTXT(tokenize(infd)))
+            merge_dicts(output, parseTXT(splitAndStripGen(infd)))
     
 with open(os.path.join(workdir, OUTFILE), "w", encoding="utf-8") as outfd:
     json.dump(output, outfd, ensure_ascii=False, indent="\t")
