@@ -1,9 +1,10 @@
 # FidoTask
 
-A parser for the NaUKMA schedules
+Fido's ennrance test - a parser for the NaUKMA schedules.
 
-## Specification
+## Usage
 
+Requires Python 3.10+ (or 3.x, idk) to run.
 Input: a folder with .tsv and .txt files in it
 Output: a .json with ALL of their data in this structure:
 
@@ -17,14 +18,16 @@ Output: a .json with ALL of their data in this structure:
 
 Both should be in the script's folder.
 
-## Resources used
+## Resources
 
 - Python with the following libraries:
   - os for working with files
   - re to cut the input into tokens and check for time
   - json to generate the output file
+- Docs, google, stackoverflow etc
+- Duct tape, crutches, prayers
 
-## TODO if I had the time and it would actually be used
+## TODO if I had the time and it was actually needed
 
 - a CLI asking for the input dir, output file and whether you want to edit or overwrite the output file
 - pass tokens into the TSV parser, not the fd, for consistency

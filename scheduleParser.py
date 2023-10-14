@@ -1,4 +1,4 @@
-import os, re, json, pprint
+import os, re, json
 
 
 FACULTIES = {"Факультет інформатики", "Факультет економічних наук"}
@@ -114,7 +114,6 @@ def parseTSV(fd) -> dict:
                 
                 dayindex += 1
                     
-    # pprint.pprint(output)
     return output
 
 
@@ -287,7 +286,6 @@ def parseTXT(tokens, minsubjectlen = 20) -> dict:
     #         print(foundTeacher)
     #         dayindex += 1
                     
-    # pprint.pprint(output)
     return output
 
 
