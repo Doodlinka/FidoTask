@@ -5,8 +5,10 @@ Fido's entrance test - a parser for the NaUKMA schedules.
 ## Development history
 
 I decided to export the inputs into .tsv and .txt, since these formats were the simplest and presumably the easiest to work with. TSV has more consistent formatting, so that's where I started, figuring out the file's structure on the way.
-After finishing .tsv parsing and output generating, I started adapting the code to the .txt. However, I ran into a problem: this format separates different cells with newlines, which were contained in the cells themselves. The crutches weren't enough to circumvent that, so I decided, a day before the deadline, to read from the .doc itself. Luckily, the inner structure was simple (though bloated), and I've parsed .xml before. With all the code for converting the schedule's data already written, getting the second half of the task to work didn't take long.
-In conclusion, this seems to work well, though I haven't tested it thoroughly and it can be improved.
+
+After finishing .tsv parsing and output generating, I started adapting the code to the .txt. However, I ran into a problem: this format separates different cells with newlines, which were contained in the cells themselves. The crutches weren't enough to circumvent that, so I decided, a day before the deadline, to read from the .doc itself. Luckily, the inner structure was simple (though bloated), and I've parsed .xml before. With all the code for converting the schedule's data already written, getting the second half of the task to work didn't take long. I realised I ought to have done this from the beginning.
+
+In conclusion, this seems to work well, though I haven't tested it thoroughly and it can be improved. For instance, if a subject's name has anything in parens, it's lost. It's a consequence of the fact that the script splits the subject and the teacher, because both being part of the subject name annoys me when I use your bot.
 
 ## Preprocessing required
 
