@@ -1,12 +1,22 @@
 # FidoTask
 
-Fido's ennrance test - a parser for the NaUKMA schedules.
+Fido's entrance test - a parser for the NaUKMA schedules.
 
-## Usage
+## Development history
 
-Requires Python 3.10+ (or 3.x, idk) to run.
-Input: a folder with .tsv and .txt files in it
-Output: a .json with ALL of their data in this structure:
+I decided to export the inputs into .tsv and .txt, since these formats were the simplest and presumably the easiest to work with. TSV has more consistent formatting, so that's where I started, figuring out the file's structure on the way.
+After finishing .tsv parsing and output generating, I started adapting the code to the .txt. However, I ran into a problem: this format separates different cells with newlines, which were contained in the cells themselves. The crutches weren't enough to circumvent that, so I decided, a day before the deadline, to read from the .doc itself. Luckily, the inner structure was simple (though bloated), and I've parsed .xml before. With all the code for converting the schedule's data already written, getting the second half of the task to work didn't take long.
+In conclusion, this seems to work well, though I haven't tested it thoroughly and it can be improved.
+
+## Preprocessing required
+
+Install Python 3.10+ (or 3.x, idk) to run the script with.
+For any .xlsx file, open it in an Excel-like program, export it as a .tsv, and put it in the script's "input" folder.
+For any .doc file, open it in a Word-like program, save it as a .docx, unarchive it like a regular zip. Find the resulting folder, find "document.xml" in the "word" subfolder, and put the xml in the script's "input" folder.
+
+## Output
+
+A .json with ALL of the input files' data in this structure:
 
 - faculty
 - year
@@ -16,25 +26,23 @@ Output: a .json with ALL of their data in this structure:
 - lessons
 - subject, teacher, group, weeks (as list of ints), location
 
-Both should be in the script's folder.
-
-## Resources
+## Resources used
 
 - Python with the following libraries:
   - os for working with files
-  - re to cut the input into tokens and check for time
+  - re to check for time
   - json to generate the output file
+  - xml.etree to read XML files
 - Docs, google, stackoverflow etc
 - Duct tape, crutches, prayers
 
 ## TODO if I had the time and it was actually needed
 
 - a CLI asking for the input dir, output file and whether you want to edit or overwrite the output file
-- pass tokens into the TSV parser, not the fd, for consistency
 - store time as a time range for /now and /next
 - don't add empty values
 - fix duplicate code
 - map extensions to parsers instead of an elif tower
-- output a database (sql or smth) instead of a json, to make it easy to search by any value, not just those that happened to be keys
-- change tokenize to only read portons of the file at a time, piecing together any tokens that got split
+- output a database (sql or something) instead of a json, to make it easy to search by any value, not just those that happened to be keys
 - unhardcode the lesson/day order (LESSONORDER exists, but is barely used)
+- use XML parsing for the xlsx tables too
