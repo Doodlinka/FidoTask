@@ -82,7 +82,7 @@ def parseTSV(fd) -> dict:
                     curlessons.append({})
                     dayindex = 0
                 # separate subject and teacher
-                elif dayindex == 0:
+                if dayindex == 0:
                     spl = t.split(",", 1)
                     # print(t)
                     curlessons[-1]["subject"] = spl[0].strip()
@@ -154,7 +154,7 @@ def XMLTableRowGen(fd, parser):
                 row.append(cell.strip())
                 cell = ""
             if tag == "t" and elem.text:
-                cell += elem.text
+                cell += elem.text + "\t"
 
 
 def parseXML(fd):
@@ -191,9 +191,15 @@ def parseXML(fd):
 
         # separate subject, teacher, specialty
         before = row[2].find("(")
-        after = row[2].find(")")
-        subject = row[2][:before].strip()
-        teacher = row[2][after+1:].strip()
+        after = row[2].rfind(")")
+        if before >= 0:
+            subject = row[2][:before]
+            teacher = row[2][after+1:]
+        else:
+            subject = row[2].split("\t")[0]
+            teacher = row[2].split("\t")[1]
+        subject = subject.strip().replace("\t", "")
+        teacher = teacher.strip().replace("\t", "")
         # convert weeks to number range
         weeks = []
         nums = row[4].split(",")
@@ -206,14 +212,14 @@ def parseXML(fd):
         
         # save the data
         for spcode in DOCSPECS[faculty]:
-            if spcode in row[2][before:after]:
+            if before < 0 or spcode in row[2][before:after]:
                 outdict = {}
                 root[DOCSPECS[faculty][spcode]][curday][curtime].append(outdict)
                 outdict["subject"] = subject
                 outdict["teacher"] = teacher
                 outdict["weeks"] = weeks
-                outdict["group"] = row[3]
-                outdict["location"] = row[5]
+                outdict["group"] = row[3].replace("\t", "")
+                outdict["location"] = row[5].replace("\t", "")
 
     return output
 
