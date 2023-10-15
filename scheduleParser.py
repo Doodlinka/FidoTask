@@ -1,4 +1,4 @@
-import os, re, json, itertools
+import os, re, json
 import xml.etree.ElementTree as ET
 
 
@@ -32,15 +32,6 @@ def merge_dicts(tgt, enhancer):
         else:
             tgt[key] = val
     return tgt
-
-
-# this is vulnerable because it reads the entire
-# (potentially huge) file into memory
-def splitAndStripGen(fd, sep = "\n"):
-    for t in re.split(sep, fd.read()):
-        t = t.strip()
-        if t: yield t
-
 
 
 def parseTSV(fd) -> dict:
@@ -160,7 +151,7 @@ def XMLTableRowGen(fd, parser):
                 yield row
                 row = []
             elif tag == "tc":
-                row.append(cell)
+                row.append(cell.strip())
                 cell = ""
             if tag == "t" and elem.text:
                 cell += elem.text
