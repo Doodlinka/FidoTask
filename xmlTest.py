@@ -10,7 +10,7 @@ print("\n\n\n")
 
 
 def FENBeforeTable(fd, parser):
-    for line in fd:
+    for line in fd.readlines():
         parser.feed(line)
         for event, elem in parser.read_events():
             tag = elem.tag.removeprefix("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}")

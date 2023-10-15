@@ -1,4 +1,5 @@
 import os, re, json, itertools
+import xml.etree.ElementTree as ET
 
 
 FACULTIES = {"Факультет інформатики", "Факультет економічних наук"}
@@ -12,6 +13,7 @@ DOCSPECS = {"Факультет економічних наук": {
 DAYS = {"Понеділок", "Вівторок", "Середа", "Четвер", "П`ятниця", "’ятниця", "Субота", "Неділя"}
 TIMEREGEXP = "([01]?[0-9]|2[0-4])[:.]([0-5]\d)-([01]?[0-9]|2[0-4])[:.]([0-5]\d)"
 LESSONORDER = ("subject,teacher", "group", "weeks", "location")
+# that's what the innocent-looking w: actually parses to
 WPREFIX = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 INDIR = "input"
 OUTFILE = "schedule.json"
@@ -38,10 +40,6 @@ def splitAndStripGen(fd, sep = "\n"):
     for t in re.split(sep, fd.read()):
         t = t.strip()
         if t: yield t
-
-
-
-
 
 
 
@@ -117,6 +115,115 @@ def parseTSV(fd) -> dict:
                 
                 dayindex += 1
                     
+    return output
+
+
+def getXMLBeforeTable(fd, parser):
+    faculty = ""
+    year = ""
+    specs = []
+    isspec = False
+    for line in fd:
+        parser.feed(line)
+        for event, elem in parser.read_events():
+            tag = elem.tag.removeprefix(WPREFIX)
+            if event == "start":
+                if tag == "tbl":
+                    return (faculty, year, specs)
+                continue
+            if not elem.text: continue
+
+            if tag == "t":
+                if elem.text in FACULTIES:
+                    faculty = elem.text
+                    if faculty in DOCSPECS:
+                        specs.extend(DOCSPECS[faculty].values())
+                elif elem.text.startswith("Спеціальність"):
+                    isspec = True
+                elif isspec:
+                    # if xml is used for the other type, look for specialty here
+                    year = elem.text[-6]
+                    isspec = False
+    return (faculty, year, specs)
+
+
+def XMLTableRowGen(fd, parser):
+    row = []
+    cell = ""
+    for line in fd:
+        parser.feed(line)
+        for event, elem in parser.read_events():
+            tag = elem.tag.removeprefix(WPREFIX)
+            if event == "start":
+                continue
+            if tag == "tr":
+                yield row
+                row = []
+            elif tag == "tc":
+                row.append(cell)
+                cell = ""
+            if tag == "t" and elem.text:
+                cell += elem.text
+
+
+def parseXML(fd):
+    parser = ET.XMLPullParser(["start", "end"])
+    output = {}
+    root = output
+
+    header = getXMLBeforeTable(fd, parser)
+    faculty = header[0]
+    root[header[0]] = {}
+    root = root[header[0]]
+    root[header[1]] = {}
+    root = root[header[1]]
+    for spec in header[2]:
+        root[spec] = {}
+
+    curday = ""
+    curtime = ""
+    rows = XMLTableRowGen(fd, parser)
+    # skip the header
+    next(rows)
+    
+    for row in rows:
+        if row[0]:
+            curday = row[0]
+            for spdict in root.values():
+                spdict[row[0]] = {}
+        if row[1]:
+            curtime = row[1]
+            for spdict in root.values():
+                spdict[curday][row[1]] = []
+        # some lessons are empty, even if they have the week or time
+        if not row[2]: continue
+
+        # separate subject, teacher, specialty
+        before = row[2].find("(")
+        after = row[2].find(")")
+        subject = row[2][:before].strip()
+        teacher = row[2][after+1:].strip()
+        # convert weeks to number range
+        weeks = []
+        nums = row[4].split(",")
+        for n in nums:
+            r = n.split("-")
+            if len(r) == 1:
+                weeks.append(int(r[0]))
+            else:
+                weeks.extend(list(range(int(r[0]), int(r[1]) + 1)))
+        
+        # save the data
+        for spcode in DOCSPECS[faculty]:
+            if spcode in row[2][before:after]:
+                outdict = {}
+                root[DOCSPECS[faculty][spcode]][curday][curtime].append(outdict)
+                outdict["subject"] = subject
+                outdict["teacher"] = teacher
+                outdict["weeks"] = weeks
+                outdict["group"] = row[3]
+                outdict["location"] = row[5]
+
     return output
 
 
@@ -304,9 +411,9 @@ for fn in [os.path.join(indir, f) for f in os.listdir(INDIR) if os.path.isfile(o
     if fn.endswith(".tsv"):
         with open(fn, encoding="utf-8") as infd:
             merge_dicts(output, parseTSV(infd))
-    if fn.endswith(".txt"):
+    if fn.endswith(".xml"):
         with open(fn, encoding="utf-8") as infd:
-            merge_dicts(output, parseTXT(splitAndStripGen(infd)))
+            merge_dicts(output, parseXML(infd))
     
 with open(os.path.join(workdir, OUTFILE), "w", encoding="utf-8") as outfd:
     json.dump(output, outfd, ensure_ascii=False, indent="\t")
